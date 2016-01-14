@@ -178,12 +178,14 @@ end
 
 function basic:func(found)
 	local oldcur = found.cur
+	self:skip_space(found)
 	local func = self:bezeichner(found)
 	self:skip_space(found)
 	if found[found.cur] and found[found.cur].pattern == self.patterns.TT_LPAREN and func then
 		found.cur=found.cur+1
 		self:skip_space(found)
 		if found[found.cur].pattern == self.patterns.TT_RPAREN then
+			found.cur=found.cur+1
 			if self.funcs[func] then
 				return self.funcs[func](self, {})
 			end
@@ -192,10 +194,11 @@ function basic:func(found)
 			while found[found.cur] and found[found.cur].pattern ~= self.patterns.TT_RPAREN do
 				args[#args+1] = self:exp(found)
 				self:skip_space(found)
-				if found[found.cur] and found[fond.cur].pattern == self.patterns.TT_COMMA then
+				if found[found.cur] and found[found.cur].pattern == self.patterns.TT_COMMA then
 					found.cur = found.cur + 1
 				end
 			end
+			found.cur=found.cur+1
 			if self.funcs[func] then
 				return self.funcs[func](self, args)
 			end
