@@ -1,0 +1,12 @@
+Start = "REM" | (Cmd) {':' (Cmd) }
+Cmd = (Bezeichner) [(Exp)] { ',', (Exp) }
+Exp = (Multiplikation) { ['+' | '-'] (Multiplikation) }
+Multiplikation = (Function) { '*'|'/' (Function) }
+Function = (Klammer) | (Bezeichner) '(' [(Exp)] {',' (Exp) } ')'
+Klammer = (Var) | ['+' | '-'] '(' (Exp) ')'
+Var = (Zahl) | (Buchstabe)
+
+Bezeichner = (Buchstabe) { (Buchstabe) }
+Buchstabe = A-Za-z
+Zahl = (Ziffer) { (Ziffer) }
+Ziffer= 0-9
