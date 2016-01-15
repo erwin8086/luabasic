@@ -12,7 +12,7 @@ basic.cmds.LET = function(self, args)
 	local var = args[1]
 	local val = args[2]
 	if var and val and type(val) == "number" then
-		var = string.sub(var,1,1)
+		var = string.sub(var,1,1):upper()
 		self.mem[var] = val
 	end
 	

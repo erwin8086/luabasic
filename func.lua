@@ -8,8 +8,13 @@ basic.funcs.RND = function(self, args)
 	if max == nil or type(max) ~= "number" then
 		max=100
 	end
+	if min > max then
+		local old=max
+		max=min
+		min=old
+	end
 	
-	return math.floor(math.random(min,max+1))
+	return math.floor(math.random(min,max))
 end
 basic.funcs.TEST = function(self, args)
 	local par1 = args[1]
@@ -55,11 +60,15 @@ basic.funcs.TEST = function(self, args)
 						return 0
 					end
 				else
+					self:error("TEST: Unknown mode")
 
 				end				
 			else
-
+				self:error("TEST: Operation illegal")
 			end
 		end
+	else
+		self:error("TEST: Inkorrect parameter")
 	end
+	return 0
 end

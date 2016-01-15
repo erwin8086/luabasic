@@ -1,5 +1,4 @@
 local basic=...
-basic.program = {}
 basic.cli = {}
 basic.cli.exit=0
 basic.cmds.LIST = function(self, args)
@@ -8,7 +7,7 @@ basic.cmds.LIST = function(self, args)
 	if not startp or not endp then
 		startp=0
 		endp=0
-		for i, line in pairs(basic.program) do
+		for i, line in pairs(self.program) do
 			if startp > i then
 				startp=i
 			end
@@ -19,57 +18,82 @@ basic.cmds.LIST = function(self, args)
 	end
 	if startp and endp and type(startp)=="number" and type(endp)=="number" then
 		for i=startp, endp do
-			if basic.program[i] then
-				self:print(i.." "..basic.program[i])
+			if self.program[i] then
+				self:print(i.." "..self.program[i])
 			end
 		end
 	end
 end
 
+function basic.cli.prg2str(self)
+	prg = ""
+	for num, val in pairs(self.program) do
+		prg = prg..num.." "..val.."\n"
+	end
+	return prg
+end
+
+function split(self, sep)
+        local sep, fields = sep or ":", {}
+        local pattern = string.format("([^%s]+)", sep)
+        self:gsub(pattern, function(c) fields[#fields+1] = c end)
+        return fields
+end
+function basic.cli.str2prg(self, str)
+	for _, line in ipairs(split(str, "\n")) do
+		num, val = string.match(line, "(%d+) (.*)")
+        	if val then
+        		self.program[tonumber(num)] = val
+	        else
+        	        num = string.match(line, "(%d+)")
+                	self.program[tonumber(num)] = nil
+	        end
+	end
+end
 basic.cmds.EXIT = function(self, args)
-	basic.cli.exit=1
+	self.cli.exit=1
 	if self.stop then
 		self:stop()
 	end
 end
 
 basic.cmds.RUN = function(self, args)
-	basic.cli.line=0
-	basic.cli.running=true
-	basic.cli.max=0
-	for num, _ in pairs(basic.program) do
-		if num > basic.cli.max then
-			basic.cli.max = num
+	self.cli.line=0
+	self.cli.running=true
+	self.cli.max=0
+	for num, _ in pairs(self.program) do
+		if num > self.cli.max then
+			self.cli.max = num
 		end
 	end
 end
 
 basic.cmds.END = function(self, args)
-	basic.cli.running=false
+	self.cli.running=false
 	if self.stop then
 		self:stop()
 	end
 end
 basic.cli.running=false
 basic.cli.nextLine = function(self)
-	local line = basic.program[basic.cli.line]
+	local line = self.program[self.cli.line]
 	while not line do
-		basic.cli.line=basic.cli.line+1
-		line = basic.program[basic.cli.line]
-		if basic.cli.line > basic.cli.max then
-			basic.cli.running=false
+		self.cli.line=self.cli.line+1
+		line = self.program[self.cli.line]
+		if self.cli.line > self.cli.max then
+			self.cli.running=false
 			return
 		end
 	end
 	local found = self:scan(line)
 	self:exec(found)
-	basic.cli.line=basic.cli.line+1
+	self.cli.line=self.cli.line+1
 end
 
 basic.cmds.GOTO = function(self, args)
 	local line = args[1]
 	if line then
-		basic.cli.line = line-1
+		self.cli.line = line-1
 		if self.stop then
 			self:stop()
 		end
@@ -85,33 +109,33 @@ basic.cmds.IF = function(self, args)
 	if par1 and mode and par2 and line and type(line)=="number" then
 		if mode == "==" then
 			if par1 == par2 then
-				basic.cli.line=line-1
+				self.cli.line=line-1
 				jump=true
 			end
 		elseif mode == "<>" then
 			if par1 ~= par2 then
-				basic.cli.line=line-1
+				self.cli.line=line-1
 				jump=true
 			end
 		elseif type(par1)=="number" and type(par2)=="number" then
 			if mode == ">" then
 				if par1>par2 then
-					basic.cli.line=line-1
+					self.cli.line=line-1
 					jump = true
 				end
 			elseif mode == "<" then
 				if par1<par2 then
-					basic.cli.line=line-1
+					self.cli.line=line-1
 					jump = true
 				end
 			elseif mode == "<=" then
 				if par1<=par2 then
-					basic.cli.line=line-1
+					self.cli.line=line-1
 					jump = true
 				end
 			elseif mode == ">=" then
 				if par1>=par2 then
-					basic.cli.line=line-1
+					self.cli.line=line-1
 					jump = true
 				end
 			else
@@ -123,7 +147,7 @@ basic.cmds.IF = function(self, args)
 	else
 		if par1 and type(par1) == "number" and mode and type(mode) == "number" then
 			if par1 > 0 then
-				basic.cli.line=mode-1
+				self.cli.line=mode-1
 				jump = true
 			end	
 		end
@@ -137,7 +161,7 @@ basic.cmds.IF = function(self, args)
 end
 
 basic.cmds.FOR = function(self, args)
-	if basic.cli.for_single_line then
+	if self.cli.for_single_line then
 		return
 	end
 	local var = args[1]
@@ -145,22 +169,22 @@ basic.cmds.FOR = function(self, args)
 	local endv = args[3]
 	if var and startv and endv and type(var)=="string" and type(startv)=="number" and type(endv)=="number" then
 		var = string.sub(var,1,1)
-		basic.mem[var] = startv
-		basic.cli.for_line = basic.cli.line
-		basic.cli.for_endv = endv
-		basic.cli.for_var = var
+		self.mem[var] = startv
+		self.cli.for_line = basic.cli.line
+		self.cli.for_endv = endv
+		self.cli.for_var = var
 	end
 end
 
 basic.cmds.NEXT = function(self, args)
-	if basic.cli.for_line and basic.cli.for_endv and basic.cli.for_var then
-		if basic.cli.for_line == basic.cli.line then
-			basic.cli.for_single_line=true
+	if self.cli.for_line and self.cli.for_endv and self.cli.for_var then
+		if self.cli.for_line == self.cli.line then
+			self.cli.for_single_line=true
 		end
-		if basic.mem[basic.cli.for_var] < basic.cli.for_endv then
-			basic.mem[basic.cli.for_var] = basic.mem[basic.cli.for_var] + 1
-			if not basic.cli.for_single_line then
-				basic.cli.line=basic.cli.for_line
+		if self.mem[basic.cli.for_var] < self.cli.for_endv then
+			self.mem[basic.cli.for_var] = self.mem[self.cli.for_var] + 1
+			if not self.cli.for_single_line then
+				self.cli.line=basic.cli.for_line
 			else
 				basic.cli.line=basic.cli.line-1
 			end
@@ -168,44 +192,45 @@ basic.cmds.NEXT = function(self, args)
 				self:stop()
 			end
 		else
-			basic.cli.for_single_line=nil
-			basic.cli.for_line=nil
-			basic.cli.for_endv=nil
-			basic.cli.for_var=nil
+			self.cli.for_single_line=nil
+			self.cli.for_line=nil
+			self.cli.for_endv=nil
+			self.cli.for_var=nil
 		end
 	end
 end
 
 basic.cmds.DO = function(self,args)
-	basic.cli.do_line=basic.cli.line
+	self.cli.do_line=self.cli.line
 end
 
 basic.cmds.WHILE = function(self, args)
-	if args[1] and type(args[1])=="number" and args[1]>0 and basic.cli.do_line then
-		basic.cli.line=basic.cli.do_line-1
+	if args[1] and type(args[1])=="number" and args[1]>0 and self.cli.do_line then
+		self.cli.line=self.cli.do_line-1
 	else
-		basic.cli.do_line=nil
+		self.cli.do_line=nil
 	end
 end
 
 
-
-while basic.cli.exit==0 do
-	local line = basic:read()
-	if string.match(string.sub(line,1,1),"%d") then
-		num, val = string.match(line, "(%d+) (.*)")
-		if val then
-			basic.program[tonumber(num)] = val
+function basic.cli.cli(self)
+	while self.cli.exit==0 do
+		local line = self:read()
+		if string.match(string.sub(line,1,1),"%d") then
+			num, val = string.match(line, "(%d+) (.*)")
+			if val then
+				self.program[tonumber(num)] = val
+			else
+				num = string.match(line, "(%d+)")
+				self.program[tonumber(num)] = nil
+			end
 		else
-			num = string.match(line, "(%d+)")
-			basic.program[tonumber(num)] = nil
+			local found = self:scan(line)
+			self:exec(found)
 		end
-	else
-		local found = basic:scan(line)
-		basic:exec(found)
-	end
-	while basic.cli.running do
-		basic.cli.nextLine(basic)
+		while self.cli.running do
+			self.cli.nextLine(self)
+		end
 	end
 end
 

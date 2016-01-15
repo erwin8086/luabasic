@@ -108,13 +108,20 @@ function basic:exec(found)
 		stop=true
 	end
 	found.cur=1
+	self:skip_space(found)
+	if found[found.cur] then
+		self:cmd(found)
+	end
+	self:skip_space(found)
 	while found[found.cur] ~= nil and not stop do
-		self:skip_space(found)
 		if found[found.cur].pattern == self.patterns.TT_COLON then
 			found.cur=found.cur+1
-		else
 			self:cmd(found)
+		else
+			self:error("Expected ':'")
+			self:stop()
 		end
+		self:skip_space(found)
 	end
 	self.stop = nil
 end
@@ -136,7 +143,7 @@ function basic:cmd(found)
 			if found[found.cur] and found[found.cur].pattern == self.patterns.TT_COMMA then
 				found.cur = found.cur + 1
 				self:skip_space(found)
-			elseif found[found.cur] then
+			elseif found[found.cur] and found[found.cur].pattern ~= self.patterns.TT_COLON then
 				self:error("Syntax error")
 			end
 		end
@@ -290,7 +297,7 @@ function basic:var(found)
 	if found[found.cur].pattern == self.patterns.TT_NUM then
 		return self:zahl(found)
 	elseif found[found.cur].pattern == self.patterns.TT_CHAR then
-		local val = self.mem[found[found.cur].char]
+		local val = self.mem[found[found.cur].char:upper()]
 		found.cur=found.cur+1
 		if val then
 			return val
@@ -317,7 +324,7 @@ function basic:bezeichner(found)
 			val = val..found[found.cur].char
 			found.cur = found.cur+1
 		end
-		return val
+		return val:upper()
 	else
 		return nil
 	end
