@@ -28,6 +28,9 @@ end
 
 basic.cmds.EXIT = function(self, args)
 	basic.cli.exit=1
+	if self.stop then
+		self:stop()
+	end
 end
 
 basic.cmds.RUN = function(self, args)
@@ -43,6 +46,9 @@ end
 
 basic.cmds.END = function(self, args)
 	basic.cli.running=false
+	if self.stop then
+		self:stop()
+	end
 end
 basic.cli.running=false
 basic.cli.nextLine = function(self)
@@ -64,6 +70,9 @@ basic.cmds.GOTO = function(self, args)
 	local line = args[1]
 	if line then
 		basic.cli.line = line-1
+		if self.stop then
+			self:stop()
+		end
 	end
 end
 
@@ -72,31 +81,38 @@ basic.cmds.IF = function(self, args)
 	local mode = args[2]
 	local par2 = args[3]
 	local line = args[4]
+	local jump=false
 	if par1 and mode and par2 and line and type(line)=="number" then
 		if mode == "==" then
 			if par1 == par2 then
 				basic.cli.line=line-1
+				jump=true
 			end
 		elseif mode == "<>" then
 			if par1 ~= par2 then
 				basic.cli.line=line-1
+				jump=true
 			end
 		elseif type(par1)=="number" and type(par2)=="number" then
 			if mode == ">" then
 				if par1>par2 then
 					basic.cli.line=line-1
+					jump = true
 				end
 			elseif mode == "<" then
 				if par1<par2 then
 					basic.cli.line=line-1
+					jump = true
 				end
 			elseif mode == "<=" then
 				if par1<=par2 then
 					basic.cli.line=line-1
+					jump = true
 				end
 			elseif mode == ">=" then
 				if par1>=par2 then
 					basic.cli.line=line-1
+					jump = true
 				end
 			else
 				self:print("ERROR Unknowen mode!")
@@ -104,11 +120,26 @@ basic.cmds.IF = function(self, args)
 
 		
 		end
+	else
+		if par1 and type(par1) == "number" and mode and type(mode) == "number" then
+			if par1 > 0 then
+				basic.cli.line=mode-1
+				jump = true
+			end	
+		end
 
+	end
+	if jump then
+		if self.stop then
+			self:stop()
+		end
 	end
 end
 
 basic.cmds.FOR = function(self, args)
+	if basic.cli.for_single_line then
+		return
+	end
 	local var = args[1]
 	local startv = args[2]
 	local endv = args[3]
@@ -123,16 +154,41 @@ end
 
 basic.cmds.NEXT = function(self, args)
 	if basic.cli.for_line and basic.cli.for_endv and basic.cli.for_var then
+		if basic.cli.for_line == basic.cli.line then
+			basic.cli.for_single_line=true
+		end
 		if basic.mem[basic.cli.for_var] < basic.cli.for_endv then
 			basic.mem[basic.cli.for_var] = basic.mem[basic.cli.for_var] + 1
-			basic.cli.line=basic.cli.for_line
+			if not basic.cli.for_single_line then
+				basic.cli.line=basic.cli.for_line
+			else
+				basic.cli.line=basic.cli.line-1
+			end
+			if self.stop then
+				self:stop()
+			end
 		else
+			basic.cli.for_single_line=nil
 			basic.cli.for_line=nil
 			basic.cli.for_endv=nil
 			basic.cli.for_var=nil
 		end
 	end
 end
+
+basic.cmds.DO = function(self,args)
+	basic.cli.do_line=basic.cli.line
+end
+
+basic.cmds.WHILE = function(self, args)
+	if args[1] and type(args[1])=="number" and args[1]>0 and basic.cli.do_line then
+		basic.cli.line=basic.cli.do_line-1
+	else
+		basic.cli.do_line=nil
+	end
+end
+
+
 
 while basic.cli.exit==0 do
 	local line = basic:read()

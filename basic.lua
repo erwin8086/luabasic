@@ -93,21 +93,30 @@ basic.scan = function(self, line)
 	
 end
 
+function basic:error(msg)
+	self:print(msg)
+end
+
 function basic:skip_space(found)
 	while found[found.cur] and found[found.cur].pattern == self.patterns.TT_SPACE do
 		found.cur = found.cur + 1
 	end
 end
 function basic:exec(found)
+	local stop=false
+	self.stop = function(self)
+		stop=true
+	end
 	found.cur=1
-	while found[found.cur] ~= nil do
+	while found[found.cur] ~= nil and not stop do
 		self:skip_space(found)
 		if found[found.cur].pattern == self.patterns.TT_COLON then
 			found.cur=found.cur+1
 		else
 			self:cmd(found)
 		end
-	end	
+	end
+	self.stop = nil
 end
 
 function basic:cmd(found)
@@ -117,10 +126,6 @@ function basic:cmd(found)
 	if func then
 		self:skip_space(found)
 		while found[found.cur] and found[found.cur].pattern ~= self.patterns.TT_COLON do
-			if found[found.cur].pattern == self.patterns.TT_COMMA then
-				found.cur = found.cur + 1
-				self:skip_space(found)
-			end
 			local arg, str= self:exp(found)	
 			if str then
 				args[#args+1] = str
@@ -128,6 +133,12 @@ function basic:cmd(found)
 				args[#args+1] = arg
 			end
 			self:skip_space(found)
+			if found[found.cur] and found[found.cur].pattern == self.patterns.TT_COMMA then
+				found.cur = found.cur + 1
+				self:skip_space(found)
+			elseif found[found.cur] then
+				self:error("Syntax error")
+			end
 		end
 	end
 	if self.cmds[func] then
@@ -137,43 +148,57 @@ function basic:cmd(found)
 end
 
 function basic:exp(found)
-	if found[found.cur] and found[found.cur].pattern == self.patterns.TT_STRING then
-		local str = found[found.cur].str
-		found.cur=found.cur+1
-		return 0, str
-	end
-	local multi=self:multi(found)
+	local multi, str=self:multi(found)
+	self:skip_space(found)
 	while found[found.cur] do
 		self:skip_space(found)
 		if found[found.cur].pattern == self.patterns.TT_PLUS then
+			if str then
+				self:error("Integer expected")
+			end
 			found.cur= found.cur+1
 			multi = multi + self:multi(found)
 		elseif found[found.cur].pattern == self.patterns.TT_MINUS then
+			if str then
+				self:error("Integer expected")
+			end
 			found.cur = found.cur+1
 			multi = multi - self:multi(found)
 		else
-			return multi
+			break
 		end
 	end
-	return multi
+	return multi,str
 
 end
 
 function basic:multi(found)
-	local val = self:func(found)
+	local val, str = self:func(found)
+	self:skip_space(found)
 	while found[found.cur] do
 		self:skip_space(found)
 		if found[found.cur].pattern == self.patterns.TT_MUL then
+			if str then
+				self:error("Integer expected")
+			end
 			found.cur = found.cur + 1
 			val = val * self:func(found)
 		elseif found[found.cur].pattern == self.patterns.TT_DIV then
+			if str then
+				self:error("Integer expected")
+			end
 			found.cur = found.cur + 1
-			val = val / self:func(found)
+			local par2 = self:func(found)
+			if par2 == 0 then
+				self:error("Division by zero")
+			else
+				val = val / par2
+			end
 		else
-			return val
+			break
 		end
 	end
-	return val
+	return val,str
 end
 
 function basic:func(found)
@@ -192,7 +217,12 @@ function basic:func(found)
 		else
 			local args = {}
 			while found[found.cur] and found[found.cur].pattern ~= self.patterns.TT_RPAREN do
-				args[#args+1] = self:exp(found)
+				local val, str = self:exp(found)
+				if str then
+					args[#args+1] = str
+				else
+					args[#args+1] = val
+				end
 				self:skip_space(found)
 				if found[found.cur] and found[found.cur].pattern == self.patterns.TT_COMMA then
 					found.cur = found.cur + 1
@@ -213,7 +243,7 @@ function basic:klammer(found)
 	local sign = 1
 	self:skip_space(found)
 	if found[found.cur] and (found[found.cur].pattern == self.patterns.TT_PLUS or found[found.cur].pattern == self.patterns.TT_MINUS) then
-		if found[found.cur] == self.patterns.TT_MINUS then
+		if found[found.cur].pattern == self.patterns.TT_MINUS then
 			sign = -1
 		end
 		found.cur = found.cur + 1
@@ -221,14 +251,18 @@ function basic:klammer(found)
 	self:skip_space(found)
 	if found[found.cur] and found[found.cur].pattern == self.patterns.TT_LPAREN then
 		found.cur = found.cur + 1
-		local value = self:exp(found)
+		local value, str = self:exp(found)
 		self:skip_space(found)
 		if found[found.cur] and found[found.cur].pattern == self.patterns.TT_RPAREN then
 			found.cur = found.cur + 1
-			return value * sign
+			return value * sign, str
+		else
+			self:error("Expected TT_RPAREN")
+			return 0
 		end
 	else
-		return self:var(found)
+		local val, str = self:var(found)
+		return val*sign, str
 	end
 end
 
@@ -249,6 +283,10 @@ end
 
 function basic:var(found)
 	self:skip_space(found)
+	if not found[found.cur] then
+		self:error("Integer expected")
+		return 0
+	end
 	if found[found.cur].pattern == self.patterns.TT_NUM then
 		return self:zahl(found)
 	elseif found[found.cur].pattern == self.patterns.TT_CHAR then
@@ -259,6 +297,14 @@ function basic:var(found)
 		else
 			return 0
 		end
+	elseif found[found.cur].pattern == self.patterns.TT_STRING then
+		local str = found[found.cur].str
+		found.cur=found.cur+1
+		return 0, str
+	else
+		found.cur=found.cur+1
+		self:error("Syntax Error")
+		return 0
 	end
 end
 
