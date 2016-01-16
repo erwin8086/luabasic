@@ -31,12 +31,20 @@ end
 
 -- From Table
 function basic:from_table(mem)
-	self.mem = mem.mem
-	self.program = mem.program
-	local cli = mem.cli
-	setmetatable(cli, self.cli)
-	self.cli.__index = self.cli
-	self.cli = cli
-end
+	if mem then
+		if mem.mem then
+			self.mem = mem.mem
+		end
+		if mem.program then
+			self.program = mem.program
+		end
+		if mem.cli then
+			local cli = mem.cli
+			setmetatable(cli, self.cli)
+			self.cli.__index = self.cli
+			self.cli = cli
+		end
+	end
+end	
 
 return basic

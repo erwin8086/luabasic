@@ -31,8 +31,17 @@ end
 -- Programm to string
 function basic.cli.prg2str(self)
 	prg = ""
-	for num, val in pairs(self.program) do
-		prg = prg..num.." "..val.."\n"
+	local min, max = 0,0
+	for num, _ in pairs(self.program) do
+		if num > max then
+			max=num
+		end
+	end
+	for x=min,max do
+		local val = self.program[x]
+		if val then
+			prg = prg..x.." "..val.."\n"
+		end
 	end
 	return prg
 end
@@ -48,12 +57,14 @@ end
 function basic.cli.str2prg(self, str)
 	for _, line in ipairs(split(str, "\n")) do
 		num, val = string.match(line, "(%d+) (.*)")
-        	if val then
-        		self.program[tonumber(num)] = val
-	        else
-        	        num = string.match(line, "(%d+)")
-                	self.program[tonumber(num)] = nil
-	        end
+		if num then
+	        	if val then
+        			self.program[tonumber(num)] = val
+	        	else
+        	        	num = string.match(line, "(%d+)")
+	                	self.program[tonumber(num)] = nil
+		        end
+		end
 	end
 end
 

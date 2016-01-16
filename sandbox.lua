@@ -1,4 +1,4 @@
-local path="."
+local path=...
 
 -- Files allowed to Load from Basic
 local files = {}
@@ -37,8 +37,23 @@ if _VERSION == "Lua 5.2" then
 	sandbox.loadfile = save_loadfile
 
 	-- load basic in sandbox
-	basic = assert(loadfile(path.."/main.lua", "bt", sandbox))(".")
-	
+	basic = assert(loadfile(path.."/main.lua", "bt", sandbox))(path)
+elseif _VERSION == "Lua 5.1" then
+	allow_file("/main.lua")
+	local function save_loadfile(fname)
+		if files[fname] == true then
+			return loadfile(fname)
+		else
+			return nil
+		end
+	end
+	sandbox.loadfile = save_loadfile
+
+	setfenv(1, sandbox)
+
+	-- load basic in sandbox
+	basic = assert(loadfile(path.."/main.lua"))(path)
+		
 end
 
 return basic
