@@ -1,18 +1,22 @@
+-- Init basic structure
 local basic = {}
 basic.cmds = {}
 basic.funcs = {}
 basic.mem = {}
 
+-- Set The Terminal
 basic.set_term = function(self, term)
 	self.term = term
 end
 
+-- Print Text
 basic.print = function(self, text)
 	if self.term and self.term.print then
 		self.term.print(text)
 	end
 end
 
+-- Read Text
 basic.read = function(self)
 	if self.term and self.term.read then
 		return self.term.read()
@@ -21,12 +25,14 @@ basic.read = function(self)
 	end
 end
 
+-- Clear Screen
 basic.clear = function(self)
 	if self.term and self.term.clear then
 		self.term.clear()
 	end
 end
 
+-- Patterns for scanner and parser
 basic.patterns = {
 	TT_NUM = { id=1, text="TT_NUM" },
 	TT_CHAR = { id=2, text="TT_CHAR" },
@@ -43,6 +49,7 @@ basic.patterns = {
 	TT_NIL = { id=0, text="TT_NIL" },
 }
 
+-- Scan and analyse line
 basic.scan = function(self, line)
 	local found = {}
 	if string.sub(1,3) == "REM" then
@@ -93,15 +100,19 @@ basic.scan = function(self, line)
 	
 end
 
+-- Print Error
 function basic:error(msg)
-	self:print(msg)
+	self:print("[ERR]: "..msg)
 end
 
+-- Skip spaces
 function basic:skip_space(found)
 	while found[found.cur] and found[found.cur].pattern == self.patterns.TT_SPACE do
 		found.cur = found.cur + 1
 	end
 end
+
+-- Exec scanned line
 function basic:exec(found)
 	local stop=false
 	self.stop = function(self)
@@ -126,6 +137,7 @@ function basic:exec(found)
 	self.stop = nil
 end
 
+-- Exec cmd in Line
 function basic:cmd(found)
 	self:skip_space(found)
 	local func = self:bezeichner(found)
@@ -154,6 +166,8 @@ function basic:cmd(found)
 	return 0
 end
 
+-- Analyse Parameter
+-- Calculate Plus/Minus
 function basic:exp(found)
 	local multi, str=self:multi(found)
 	self:skip_space(found)
@@ -179,6 +193,7 @@ function basic:exp(found)
 
 end
 
+-- Calculate Multi/Divi 
 function basic:multi(found)
 	local val, str = self:func(found)
 	self:skip_space(found)
@@ -208,6 +223,7 @@ function basic:multi(found)
 	return val,str
 end
 
+-- Check for function
 function basic:func(found)
 	local oldcur = found.cur
 	self:skip_space(found)
@@ -246,6 +262,7 @@ function basic:func(found)
 	end
 end
 
+-- Check for klammer
 function basic:klammer(found)
 	local sign = 1
 	self:skip_space(found)
@@ -273,6 +290,7 @@ function basic:klammer(found)
 	end
 end
 
+-- Check for Zahl
 function basic:zahl(found)
 	self:skip_space(found)
 	local num = ""
@@ -288,6 +306,7 @@ function basic:zahl(found)
 	end
 end
 
+-- Check for variable
 function basic:var(found)
 	self:skip_space(found)
 	if not found[found.cur] then
@@ -315,6 +334,7 @@ function basic:var(found)
 	end
 end
 
+-- Check for identifier
 function basic:bezeichner(found)
 	self:skip_space(found)
 	if found[found.cur] and found[found.cur].pattern == self.patterns.TT_CHAR then
@@ -330,4 +350,5 @@ function basic:bezeichner(found)
 	end
 end
 
+-- Return created structure
 return basic

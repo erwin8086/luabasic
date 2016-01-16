@@ -1,5 +1,6 @@
 local basic=...
 
+-- Print Strings and Numbers
 basic.cmds.PRINT = function(self, args)
 	local msg = ""
 	for _,txt in ipairs(args) do
@@ -8,6 +9,7 @@ basic.cmds.PRINT = function(self, args)
 	self:print(msg)
 end
 
+-- Assings Variable
 basic.cmds.LET = function(self, args)
 	local var = args[1]
 	local val = args[2]
@@ -16,4 +18,9 @@ basic.cmds.LET = function(self, args)
 		self.mem[var] = val
 	end
 	
+end
+
+--Clears The Screen
+basic.cmds.CLEAR = function(self, args)
+	self:clear()
 end

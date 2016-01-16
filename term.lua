@@ -1,3 +1,4 @@
+-- Minimal Terminal Library
 local term = {}
 
 term.print = print

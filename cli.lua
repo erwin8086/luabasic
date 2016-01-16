@@ -1,6 +1,9 @@
 local basic=...
+-- Generate the cli structure
 basic.cli = {}
 basic.cli.exit=0
+
+-- List the Programcode
 basic.cmds.LIST = function(self, args)
 	local startp = args[1]
 	local endp = args[2]
@@ -25,6 +28,7 @@ basic.cmds.LIST = function(self, args)
 	end
 end
 
+-- Programm to string
 function basic.cli.prg2str(self)
 	prg = ""
 	for num, val in pairs(self.program) do
@@ -33,12 +37,14 @@ function basic.cli.prg2str(self)
 	return prg
 end
 
+-- Split from http://lua-users.org/wiki/SplitJoin
 function split(self, sep)
         local sep, fields = sep or ":", {}
         local pattern = string.format("([^%s]+)", sep)
         self:gsub(pattern, function(c) fields[#fields+1] = c end)
         return fields
 end
+-- String to Program
 function basic.cli.str2prg(self, str)
 	for _, line in ipairs(split(str, "\n")) do
 		num, val = string.match(line, "(%d+) (.*)")
@@ -50,6 +56,8 @@ function basic.cli.str2prg(self, str)
 	        end
 	end
 end
+
+-- Exit running cli
 basic.cmds.EXIT = function(self, args)
 	self.cli.exit=1
 	if self.stop then
@@ -57,6 +65,7 @@ basic.cmds.EXIT = function(self, args)
 	end
 end
 
+-- Run Programm
 basic.cmds.RUN = function(self, args)
 	self.cli.line=0
 	self.cli.running=true
@@ -68,6 +77,7 @@ basic.cmds.RUN = function(self, args)
 	end
 end
 
+-- End Programm
 basic.cmds.END = function(self, args)
 	self.cli.running=false
 	if self.stop then
@@ -75,6 +85,7 @@ basic.cmds.END = function(self, args)
 	end
 end
 basic.cli.running=false
+-- Parse Next Line
 basic.cli.nextLine = function(self)
 	local line = self.program[self.cli.line]
 	while not line do
@@ -90,6 +101,7 @@ basic.cli.nextLine = function(self)
 	self.cli.line=self.cli.line+1
 end
 
+-- Goto Line
 basic.cmds.GOTO = function(self, args)
 	local line = args[1]
 	if line then
@@ -100,6 +112,20 @@ basic.cmds.GOTO = function(self, args)
 	end
 end
 
+--[[
+	CMD IF:
+		IF PAR1, OP, PAR2, LINE
+		IF CHECK, LINE
+		OP = Operation:
+			"==" = Equals
+			">=" = Greater or Equals
+			"<=" = Lesser or Equals
+			">" = Greater
+			"<" = Lesser
+			"<>" = not Equals
+		LINE Line to jump if true
+		CHECK If Greater zero then true
+]]
 basic.cmds.IF = function(self, args)
 	local par1 = args[1]
 	local mode = args[2]
@@ -160,6 +186,13 @@ basic.cmds.IF = function(self, args)
 	end
 end
 
+--[[
+	For Loop:
+		FOR "VAR", MIN, MAX
+		VAR = Variable( A-Z )
+		MIN = Start value
+		MAX = End value
+]]
 basic.cmds.FOR = function(self, args)
 	if self.cli.for_single_line then
 		return
@@ -176,6 +209,10 @@ basic.cmds.FOR = function(self, args)
 	end
 end
 
+--[[
+	Close For Loop
+	No Parameter
+]]
 basic.cmds.NEXT = function(self, args)
 	if self.cli.for_line and self.cli.for_endv and self.cli.for_var then
 		if self.cli.for_line == self.cli.line then
@@ -200,10 +237,19 @@ basic.cmds.NEXT = function(self, args)
 	end
 end
 
+--[[
+	Do ... While Loop
+	Starts Do ... While Loop.
+]]
 basic.cmds.DO = function(self,args)
 	self.cli.do_line=self.cli.line
 end
 
+--[[
+	WHILE PAR1
+	Close Do ... While Loop
+	if PAR1 > 0 jumps to Do else exits Do while loop
+]]
 basic.cmds.WHILE = function(self, args)
 	if args[1] and type(args[1])=="number" and args[1]>0 and self.cli.do_line then
 		self.cli.line=self.cli.do_line-1
@@ -212,22 +258,44 @@ basic.cmds.WHILE = function(self, args)
 	end
 end
 
+--[[
+	Function LINE()
+	Return current Line
+	0 if not running
+]]
+basic.funcs.LINE = function(self, args)
+	if self.cli.running then
+		return self.cli.line
+	else
+		return 0
+	end
+end
 
+--[[
+	Reads and parses Line
+]]
+function basic.cli.readLine(self)
+	local line = self:read()
+	if string.match(string.sub(line,1,1),"%d") then
+		num, val = string.match(line, "(%d+) (.*)")
+		if val then
+			self.program[tonumber(num)] = val
+		else
+			num = string.match(line, "(%d+)")
+			self.program[tonumber(num)] = nil
+		end
+	else
+		local found = self:scan(line)
+		self:exec(found)
+	end
+end
+
+--[[
+	Command Line Interface
+]]
 function basic.cli.cli(self)
 	while self.cli.exit==0 do
-		local line = self:read()
-		if string.match(string.sub(line,1,1),"%d") then
-			num, val = string.match(line, "(%d+) (.*)")
-			if val then
-				self.program[tonumber(num)] = val
-			else
-				num = string.match(line, "(%d+)")
-				self.program[tonumber(num)] = nil
-			end
-		else
-			local found = self:scan(line)
-			self:exec(found)
-		end
+		self.cli.readLine(self)
 		while self.cli.running do
 			self.cli.nextLine(self)
 		end

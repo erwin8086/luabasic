@@ -1,4 +1,11 @@
 basic=...
+
+--[[
+	Function RND(MIN,MAX)
+	Returns Random Number between MIN and MAX
+	MIN AND MAX Are Optional
+	Defaults: MIN=0, MAX=100
+]]
 basic.funcs.RND = function(self, args)
 	local min = args[1]
 	local max = args[2]
@@ -16,6 +23,19 @@ basic.funcs.RND = function(self, args)
 	
 	return math.floor(math.random(min,max))
 end
+
+--[[
+	Test Expression
+	TEST(PAR1, OP, PAR2)
+	OP = Operation:
+		"==" = Equals
+		">=" = Greater or Equals
+		"<=" = Lesser or Equals
+		">" = Greater
+		"<" = Lesser
+		"<>" = Not Equals
+	If true it returns 1 else 0
+]]
 basic.funcs.TEST = function(self, args)
 	local par1 = args[1]
 	local mode = args[2]
@@ -71,4 +91,35 @@ basic.funcs.TEST = function(self, args)
 		self:error("TEST: Inkorrect parameter")
 	end
 	return 0
+end
+
+--[[
+	Concatenate more Values(numbers or strings)
+	Returns string of result
+]]
+basic.funcs.CAT = function(self, args)
+	local val=""
+	for _, arg in ipairs(args) do
+		val=val..arg
+	end
+	return 0, val
+end
+
+--[[
+	Converts string to int
+	returns int
+]]
+basic.funcs.TONUMBER = function(self, args)
+	if args[1] and type(args[1]) =="string" then
+		local num = args[1]:match("(%d+)")
+		if num then
+			return tonumber(num)
+		else
+			self:error("Not a number")
+			return 0
+		end
+	else
+		self:error("Not enoug arguments")
+		return 0
+	end
 end

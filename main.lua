@@ -1,16 +1,12 @@
 local path=...
-local basic = dofile(path.."/basic.lua")
-basic:set_term(dofile(path.."/term.lua"))
-basic.cmds.hello = function(self, args)
-	local mesg = ""
-	for _, msg in ipairs(args) do
-		mesg=mesg..msg
-	end
-	print("hello"..mesg)
-end
+-- Loads all Components
+local basic = assert(loadfile(path.."/basic.lua"))()
+basic:set_term(assert(loadfile(path.."/term.lua"))())
 assert(loadfile(path.."/cmds.lua"))(basic)
 assert(loadfile(path.."/func.lua"))(basic)
 assert(loadfile(path.."/cli.lua"))(basic)
+
+-- New instance
 function basic:new(n)
 	n = n or {}
 	setmetatable(n, self)
@@ -23,6 +19,8 @@ function basic:new(n)
 	return n
 end
 
+-- To Table
+-- Change with state
 function basic:to_table()
 	local mem = {}
 	mem.mem = self.mem
@@ -31,6 +29,7 @@ function basic:to_table()
 	return mem
 end
 
+-- From Table
 function basic:from_table(mem)
 	self.mem = mem.mem
 	self.program = mem.program
