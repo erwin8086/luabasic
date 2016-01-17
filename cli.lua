@@ -56,7 +56,7 @@ end
 -- String to Program
 function basic.cli.str2prg(self, str)
 	for _, line in ipairs(split(str, "\n")) do
-		num, val = string.match(line, "(%d+) (.*)")
+		local num, val = string.match(line, "(%d+) (.*)")
 		if num then
 	        	if val then
         			self.program[tonumber(num)] = val
@@ -288,7 +288,7 @@ end
 function basic.cli.readLine(self)
 	local line = self:read()
 	if string.match(string.sub(line,1,1),"%d") then
-		num, val = string.match(line, "(%d+) (.*)")
+		local num, val = string.match(line, "(%d+) (.*)")
 		if val then
 			self.program[tonumber(num)] = val
 		else
