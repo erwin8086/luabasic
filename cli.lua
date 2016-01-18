@@ -212,9 +212,9 @@ basic.cmds.FOR = function(self, args)
 	local startv = args[2]
 	local endv = args[3]
 	if var and startv and endv and type(var)=="string" and type(startv)=="number" and type(endv)=="number" then
-		var = string.sub(var,1,1)
+		var = string.sub(var,1,1):upper()
 		self.mem[var] = startv
-		self.cli.for_line = basic.cli.line
+		self.cli.for_line = self.cli.line
 		self.cli.for_endv = endv
 		self.cli.for_var = var
 	end
@@ -229,12 +229,12 @@ basic.cmds.NEXT = function(self, args)
 		if self.cli.for_line == self.cli.line then
 			self.cli.for_single_line=true
 		end
-		if self.mem[basic.cli.for_var] < self.cli.for_endv then
-			self.mem[basic.cli.for_var] = self.mem[self.cli.for_var] + 1
+		if self.mem[self.cli.for_var] < self.cli.for_endv then
+			self.mem[self.cli.for_var] = self.mem[self.cli.for_var] + 1
 			if not self.cli.for_single_line then
-				self.cli.line=basic.cli.for_line
+				self.cli.line=self.cli.for_line
 			else
-				basic.cli.line=basic.cli.line-1
+				self.cli.line=self.cli.for_line-1
 			end
 			if self.stop then
 				self:stop()
