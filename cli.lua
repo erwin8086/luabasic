@@ -28,6 +28,10 @@ basic.cmds.LIST = function(self, args)
 	end
 end
 
+basic.cmds.DELPRG = function(self, args)
+	self.program = {}
+end
+
 -- Programm to string
 function basic.cli.prg2str(self)
 	prg = ""
